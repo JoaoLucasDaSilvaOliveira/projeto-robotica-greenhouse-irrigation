@@ -3,11 +3,9 @@
 Controlar a umidade do solo. O sensor de umidade do solo HD-38 monitora a umidade. Se ela cair abaixo de um limite preestabelecido, o sistema aciona um relé que ligaria uma bomba d'água para irrigação (simulada por motor DC). Os dados são visualizados no Grafana. O acionamento do relé deve ser feito via mensagem recebida do MQTT, e não diretamente pelo sketch.
 
 ### Gráficos
-Grafana (tipo: dados)
-
-### Status
-- Umidade
-- Motor DC
+**Grafana (tipo: dados)**
+- Stat: umidade
+- Stat: motor DC
 
 ### Tópicos MQTT
 - **Gravar:**
