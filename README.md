@@ -27,14 +27,14 @@ Controlar a umidade do solo. O sensor de umidade do solo HD-38 monitora a umidad
 - Motor DC (simula a bomba d'água)
 
 ### Esquema de Ligação:
-- Sensor DHT -> ESP32:
+#### Sensor DHT -> ESP32:
 - VCC -> 3.3V
 - GND -> GND
 - DATA -> GPIO02
-- Módulo Relé -> ESP32:
+#### Módulo Relé -> ESP32:
 - VCC -> VIN (5V)
 - GND -> GND
 - IN -> GPIO04
-- Módulo Relé -> Motor DC:
+#### Módulo Relé -> Motor DC:
 - COM -> 5V
 - NC -> VCC (o outro conector do Motor deve ser ligado ao GND)
