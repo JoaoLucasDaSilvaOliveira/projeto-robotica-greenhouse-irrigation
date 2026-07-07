@@ -9,10 +9,10 @@
 #include "WifiLib.h"
 #include "MQTTSubClient.h"
 #include "relay.h"
-#include "button.h"
+#include "soil_moisture_sensor.h"
 
 //pin definitions
-#define BUTTON_PIN 2
+#define SOIL_HUMIDITY_SENSOR_PIN 34
 #define RELAY_PIN 4
 
 //control variables
@@ -25,10 +25,10 @@ bool irrigationOn = false;
 
 
 //class instances
-WifiLib wifi(WIFI_SSID, WIFI_PASS);
+WifiLib wifi(WIFI_DNS, WIFI_PASS);
 MQTTSubClient mqttClient(MQTT_HOST_IP, MQTT_PORT, MQTT_CLIENT_ID, MQTT_USERNAME, MQTT_PASSWORD);
 Relay relay (RELAY_PIN);
-Button button (BUTTON_PIN);
+SoilMoistureSensor soilMoistureSensor(SOIL_HUMIDITY_SENSOR_PIN);
 
 //connects to WiFi
 void conectarWiFi() {
@@ -154,15 +154,18 @@ void setup() {
 
   //component setup
   relay.initialize();
-  button.initialize();
+  soilMoistureSensor.initialize();
 
-  //connection setup
-  wifi.initialize();
-  conectarWiFi();
+  //default resolution for ESP32: 12 bits: (0-4095)
+  analogReadResolution(12);
 
-  mqttClient.initialize();
-  mqttClient.onMessageReceived = monitorIrrigation;
-  conectarMQTT();
+  // //connection setup
+  // wifi.initialize();
+  // conectarWiFi();
+
+  // mqttClient.initialize();
+  // mqttClient.onMessageReceived = monitorIrrigation;
+  // conectarMQTT();
 
   Serial.println("Sistema configurado e pronto para inicialização");
   Serial.println("Clique no botão para abaixar o nível de humidade da estufa.");
@@ -171,37 +174,43 @@ void setup() {
 }
 
 void loop() {
-  //keeps connections alive
-  if (!wifi.checkConnection()) {
-    Serial.println("WiFi desconectado");
-    conectarWiFi();
-  }
+    Serial.print("Sensor de humidade");
+    if (soilMoistureSensor.checkHumidity() < 3000) {
+      turnOnIrrigation();
+    } else {
+      turnOffIrrigation();
+    }
+  // //keeps connections alive
+  // if (!wifi.checkConnection()) {
+  //   Serial.println("WiFi desconectado");
+  //   conectarWiFi();
+  // }
 
-  if (!mqttClient.checkState()) {
-    Serial.println("MQTT desconectado");
-    conectarMQTT();
-  }
-  mqttClient.loop();
+  // if (!mqttClient.checkState()) {
+  //   Serial.println("MQTT desconectado");
+  //   conectarMQTT();
+  // }
+  // mqttClient.loop();
 
-  delay(100);
+  // delay(100);
 
-  monitorHumidityLevel();
+  // monitorHumidityLevel();
 
-  if (humidityLevel < HUMIDITY_LIMIT && !irrigationOn) {
-    requestStartIrrigation();
-  }
+  // if (humidityLevel < HUMIDITY_LIMIT && !irrigationOn) {
+  //   requestStartIrrigation();
+  // }
 
-  if (humidityLevel >= HUMIDITY_LIMIT && irrigationOn) {
-    requestStopIrrigation();
-  }
+  // if (humidityLevel >= HUMIDITY_LIMIT && irrigationOn) {
+  //   requestStopIrrigation();
+  // }
 
-  if (irrigationOn && humidityLevel < 10) {
-    humidityLevel++;
-  }
+  // if (irrigationOn && humidityLevel < 10) {
+  //   humidityLevel++;
+  // }
 
-  if (button.checkState() == HIGH && humidityLevel > 0) {
-    humidityLevel--;
-  }
+  // if (button.checkState() == HIGH && humidityLevel > 0) {
+  //   humidityLevel--;
+  // }
 
-  delay(500);
+  // delay(500);
 }

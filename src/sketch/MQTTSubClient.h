@@ -3,9 +3,10 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <PubSubClient.h>
 
 // Definição da assinatura da função que vai lidar com as mensagens
-typedef void (*MqttMessageHandler)(String topic, String message);
+typedef void (*MqttMessageHandler)(String message);
 
 class MQTTSubClient {
   private:
