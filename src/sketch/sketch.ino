@@ -1,6 +1,5 @@
 //arduino libs
 #include <Arduino.h>
-#include <iostream>
 #include <ArduinoJson.h>
 
 //project libs
@@ -16,8 +15,7 @@
 #define RELAY_PIN 4
 
 //control variables
-#define HUMIDITY_LIMIT 5 // scale: 0 - 10
-int humidityLevel = 10; // starts fully humid
+int humidityLevel;
 bool irrigationOn = false;
 #define MOCK_LATITUDE -28.47410011
 #define MOCK_LONGITUDE -49.02539825 
@@ -50,7 +48,7 @@ void conectarMQTT() {
   while (!mqttClient.checkState()) {
     mqttClient.startConnection();
     Serial.print(".");
-    delay(1000);
+    delay(100);
   }
   
   Serial.println("\nMQTT conectado");
@@ -71,6 +69,7 @@ void turnOffIrrigation () {
 
 //publishes current humidity level
 void monitorHumidityLevel() {
+  humidityLevel = soilMoistureSensor.checkHumidity();
   Serial.println("--- Publicando o nível de humidade! ---");
   Serial.print("Nível atual: ");
   Serial.println(humidityLevel);
@@ -83,7 +82,7 @@ void monitorHumidityLevel() {
   String output;
   serializeJson(doc, output);
   mqttClient.publicarTopicoMQTT(WRITE_HUMIDITY_TOPIC, output);
-  Serial.println("--- Pedido publicado! ---");
+  Serial.println("--- Nível publicado! ---");
 }
 
 //publishes irrigation start request
@@ -118,10 +117,6 @@ void requestStopIrrigation() {
 
 //handles irrigation MQTT messages
 void monitorIrrigation(String message) {
-  Serial.println("--- Nova Mensagem MQTT Chegou! ---");
-  Serial.print("Payload: ");
-  Serial.println(message);
-
   JsonDocument doc;
 
   DeserializationError error = deserializeJson(doc, message);
@@ -159,13 +154,13 @@ void setup() {
   //default resolution for ESP32: 12 bits: (0-4095)
   analogReadResolution(12);
 
-  // //connection setup
-  // wifi.initialize();
-  // conectarWiFi();
+  //connection setup
+  wifi.initialize();
+  conectarWiFi();
 
-  // mqttClient.initialize();
-  // mqttClient.onMessageReceived = monitorIrrigation;
-  // conectarMQTT();
+  mqttClient.initialize();
+  mqttClient.onMessageReceived = monitorIrrigation;
+  conectarMQTT();
 
   Serial.println("Sistema configurado e pronto para inicialização");
   Serial.println("Clique no botão para abaixar o nível de humidade da estufa.");
@@ -174,43 +169,26 @@ void setup() {
 }
 
 void loop() {
-    Serial.print("Sensor de humidade");
-    if (soilMoistureSensor.checkHumidity() < 3000) {
-      turnOnIrrigation();
-    } else {
-      turnOffIrrigation();
-    }
-  // //keeps connections alive
-  // if (!wifi.checkConnection()) {
-  //   Serial.println("WiFi desconectado");
-  //   conectarWiFi();
-  // }
+  //keeps connections alive
+  if (!wifi.checkConnection()) {
+    Serial.println("WiFi desconectado");
+    conectarWiFi();
+  }
 
-  // if (!mqttClient.checkState()) {
-  //   Serial.println("MQTT desconectado");
-  //   conectarMQTT();
-  // }
-  // mqttClient.loop();
+  if (!mqttClient.checkState()) {
+    Serial.println("MQTT desconectado");
+    conectarMQTT();
+  }
+  mqttClient.loop();
 
-  // delay(100);
+  monitorHumidityLevel();
 
-  // monitorHumidityLevel();
+if (humidityLevel > SOIL_WET_S && !irrigationOn) {
+  requestStartIrrigation();
+} 
 
-  // if (humidityLevel < HUMIDITY_LIMIT && !irrigationOn) {
-  //   requestStartIrrigation();
-  // }
-
-  // if (humidityLevel >= HUMIDITY_LIMIT && irrigationOn) {
-  //   requestStopIrrigation();
-  // }
-
-  // if (irrigationOn && humidityLevel < 10) {
-  //   humidityLevel++;
-  // }
-
-  // if (button.checkState() == HIGH && humidityLevel > 0) {
-  //   humidityLevel--;
-  // }
-
-  // delay(500);
+if (humidityLevel <= SOIL_WET_S && irrigationOn) {
+  requestStopIrrigation();
+}
+  delay(1000);
 }
